@@ -10,11 +10,10 @@
  * 
  */
 UCLASS()
-class PROJECTNAME_API UUnrealMosquittoRoutingLibrary : public UBlueprintFunctionLibrary
+class UEMQTT_API UUnrealMosquittoRoutingLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_BODY()
-	
+
 	UFUNCTION(BlueprintPure, meta = (DisplayName = "Routing not matched (string)"), Category = "Utilities|Routing")
-	static bool RoutingNotMatched(const FString& A, const FString& B);
-	
+	static bool RoutingNotMatched(const FString &A, const FString &B);
 };

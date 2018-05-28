@@ -10,21 +10,21 @@
  * 
  */
 UCLASS(BlueprintType, Blueprintable)
-class PROJECTNAME_API UUnrealMosquittoRouter : public UK2Node_Switch
+class UEMQTT_API UUnrealMosquittoRouter : public UK2Node_Switch
 {
 	GENERATED_BODY()
-	
+
 	UPROPERTY(EditAnywhere, Category = RouteOptions)
 	TArray<FString> Routes;
 
 	// UObject interface
-	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent &PropertyChangedEvent) override;
 
 	// UEdGraphNode interface
 	virtual bool ShouldShowNodeProperties() const override { return true; }
 
 	// UK2Node interface
-	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
+	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar &ActionRegistrar) const override;
 
 	virtual FText GetTooltipText() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -37,11 +37,8 @@ class PROJECTNAME_API UUnrealMosquittoRouter : public UK2Node_Switch
 	virtual FString GetPinNameGivenIndex(int32 Index) override;
 	virtual void CreateFunctionPin();
 
-protected:
+  protected:
 	virtual void CreateSelectionPin() override;
 	virtual void CreateCasePins() override;
-	virtual void RemovePin(UEdGraphPin* TargetPin) override;
-	
-	
-	
+	virtual void RemovePin(UEdGraphPin *TargetPin) override;
 };

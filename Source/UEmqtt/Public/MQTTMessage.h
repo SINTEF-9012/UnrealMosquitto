@@ -10,43 +10,42 @@
 #include "MQTTMessage.generated.h"
 
 USTRUCT(BlueprintType)
-struct FUMQTTMessagePayload {
+struct FUMQTTMessagePayload
+{
 	GENERATED_BODY()
 
-		void* Buffer;
+	void *Buffer;
 };
 
 /**
  * 
  */
 UCLASS(Blueprintable)
-class PROJECTNAME_API UMQTTMessage : public UObject
+class UEMQTT_API UMQTTMessage : public UObject
 {
 	GENERATED_BODY()
-	
-public:
+
+  public:
 	UMQTTMessage();
 	~UMQTTMessage();
 
-	void FromMosquitto(const struct mosquitto_message* message);
+	void FromMosquitto(const struct mosquitto_message *message);
 
 	UPROPERTY(BlueprintReadOnly, Category = MQTT)
-		FString Topic;
+	FString Topic;
 
 	UPROPERTY(BlueprintReadOnly, Category = MQTT)
-		int QOS;
+	int QOS;
 
 	UPROPERTY(BlueprintReadOnly, Category = MQTT)
-		bool Retain;
+	bool Retain;
 
 	UPROPERTY(BlueprintReadOnly, Category = MQTT)
-		int PayloadLength;
+	int PayloadLength;
 
 	UPROPERTY(BlueprintReadOnly, Category = MQTT)
-		FUMQTTMessagePayload Payload;
+	FUMQTTMessagePayload Payload;
 
 	UFUNCTION(BlueprintCallable, Category = MQTT)
-		FString GetPayloadAsString();
-	
-	
+	FString GetPayloadAsString();
 };

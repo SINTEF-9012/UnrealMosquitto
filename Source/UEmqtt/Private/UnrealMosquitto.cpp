@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ProjectName.h"
 #include "UnrealMosquitto.h"
+#include "UEmqtt.h"
 
 #include "RunnableThread.h"
 
@@ -11,20 +11,24 @@
 #include <iostream>
 #include <string>
 
-bool UnrealMosquitto::FRunnableTask::Init() {
+bool UnrealMosquitto::FRunnableTask::Init()
+{
 	_continue = true;
 	return true;
 }
 
-void UnrealMosquitto::FRunnableTask::StopRequest() {
+void UnrealMosquitto::FRunnableTask::StopRequest()
+{
 	_continue = false;
 }
 
-void UnrealMosquitto::FRunnableTask::Stop() {
+void UnrealMosquitto::FRunnableTask::Stop()
+{
 	StopRequest();
 }
 
-uint32 UnrealMosquitto::FRunnableTask::Run() {
+uint32 UnrealMosquitto::FRunnableTask::Run()
+{
 	mosqpp::lib_init();
 
 	// Creating the MQTT connection client.
@@ -32,30 +36,34 @@ uint32 UnrealMosquitto::FRunnableTask::Run() {
 	connection.max_inflight_messages_set(0);
 	connection.Task = this;
 	int returnCode = 0;
-	if (!Username.empty()) {
+	if (!Username.empty())
+	{
 		connection.username_pw_set(Username.c_str(), Password.c_str());
 	}
 	UE_LOG(LogTemp, Error, TEXT("Connecting to MQTT broker."));
 	returnCode = connection.connect(Host.c_str(), Port, 10);
 
-	if (returnCode != 0) {
+	if (returnCode != 0)
+	{
 		UE_LOG(LogTemp, Error, TEXT("Mosquitto connect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 		_continue = false;
 	}
 
 	// While StopRequest() hasn't been called
-	while (_continue) {
+	while (_continue)
+	{
 
 		// Lock critical region.
 		OutputQueueLock->Lock();
 
 		// Send the data from the output queue
-		while (OutputQueue != NULL && !OutputQueue->empty()) {
+		while (OutputQueue != NULL && !OutputQueue->empty())
+		{
 			OutputEvent ev = OutputQueue->front();
 			OutputQueue->pop();
 
-
-			switch (ev.type) {
+			switch (ev.type)
+			{
 			case OutputEventType::Subscribe:
 				returnCode = connection.subscribe(NULL, ev.subscription.sub, ev.subscription.qos);
 				free(ev.subscription.sub);
@@ -66,7 +74,7 @@ uint32 UnrealMosquitto::FRunnableTask::Run() {
 				break;
 			case OutputEventType::Publish:
 				returnCode = connection.publish(NULL, ev.message.topic, ev.message.payloadlen,
-					ev.message.payload, ev.message.qos, ev.message.retain);
+												ev.message.payload, ev.message.qos, ev.message.retain);
 				free(ev.message.topic);
 				free(ev.message.payload);
 				break;
@@ -76,7 +84,8 @@ uint32 UnrealMosquitto::FRunnableTask::Run() {
 		// Unlock critical region.
 		OutputQueueLock->Unlock();
 
-		if (returnCode != 0) {
+		if (returnCode != 0)
+		{
 			UE_LOG(LogTemp, Error, TEXT("Mosquitto output error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 			connection.reconnect();
 		}
@@ -88,7 +97,8 @@ uint32 UnrealMosquitto::FRunnableTask::Run() {
 		returnCode = connection.loop();
 		} while (_continue && returnCode == MOSQ_ERR_SUCCESS && ++i < 10);*/
 
-		if (returnCode != 0) {
+		if (returnCode != 0)
+		{
 			UE_LOG(LogTemp, Error, TEXT("Mosquitto loop error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 			connection.reconnect();
 		}
@@ -96,7 +106,8 @@ uint32 UnrealMosquitto::FRunnableTask::Run() {
 
 	UE_LOG(LogTemp, Error, TEXT("Disconnecting."));
 	returnCode = connection.disconnect();
-	if (returnCode != 0) {
+	if (returnCode != 0)
+	{
 		UE_LOG(LogTemp, Error, TEXT("Mosquitto disconnect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 	}
 
@@ -113,17 +124,18 @@ uint32 UnrealMosquitto::FRunnableTask::Run() {
 	return 0;
 }
 
-UnrealMosquitto::MQTTClient::MQTTClient(const char * id) : mosqpp::mosquittopp(id)
+UnrealMosquitto::MQTTClient::MQTTClient(const char *id) : mosqpp::mosquittopp(id)
 {
 }
 
-UnrealMosquitto::MQTTClient::~MQTTClient() {
+UnrealMosquitto::MQTTClient::~MQTTClient()
+{
 }
-
 
 void UnrealMosquitto::MQTTClient::on_connect(int rc)
 {
-	if (rc != 0) {
+	if (rc != 0)
+	{
 		UE_LOG(LogTemp, Error, TEXT("Not connected."));
 		return;
 	}
@@ -152,31 +164,36 @@ void UnrealMosquitto::MQTTClient::on_publish(int mid)
 	Task->PushInputEvent(ev);
 }
 
-struct mosquitto_message* copy_mosquitto_message(const mosquitto_message* src) {
-	struct mosquitto_message* dst = (struct mosquitto_message *) calloc(1, sizeof(struct mosquitto_message));
+struct mosquitto_message *copy_mosquitto_message(const mosquitto_message *src)
+{
+	struct mosquitto_message *dst = (struct mosquitto_message *)calloc(1, sizeof(struct mosquitto_message));
 
 	dst->mid = src->mid;
 	dst->topic = _strdup(src->topic);
-	if (!dst->topic) return NULL;
+	if (!dst->topic)
+		return NULL;
 	dst->qos = src->qos;
 	dst->retain = src->retain;
-	if (src->payloadlen) {
+	if (src->payloadlen)
+	{
 		dst->payload = malloc(src->payloadlen);
-		if (!dst->payload) {
+		if (!dst->payload)
+		{
 			free(dst->topic);
 			return NULL;
 		}
 		memcpy(dst->payload, src->payload, src->payloadlen);
 		dst->payloadlen = src->payloadlen;
 	}
-	else {
+	else
+	{
 		dst->payloadlen = 0;
 		dst->payload = NULL;
 	}
 	return dst;
 }
 
-void UnrealMosquitto::MQTTClient::on_message(const mosquitto_message * src)
+void UnrealMosquitto::MQTTClient::on_message(const mosquitto_message *src)
 {
 	// Copy the MQTT message
 	// We cannot copy it yet to a UObject because UObject MUST be created
@@ -192,13 +209,12 @@ void UnrealMosquitto::MQTTClient::on_message(const mosquitto_message * src)
 	Task->PushInputEvent(ev);
 }
 
-void UnrealMosquitto::MQTTClient::on_subscribe(int mid, int qos_count, const int * granted_qos)
+void UnrealMosquitto::MQTTClient::on_subscribe(int mid, int qos_count, const int *granted_qos)
 {
 	InputEvent ev;
 	ev.type = UnrealMosquitto::InputEventType::Subscribe;
 	ev.subscription = {
-		mid, qos_count, granted_qos
-	};
+		mid, qos_count, granted_qos};
 
 	Task->PushInputEvent(ev);
 }
@@ -215,7 +231,8 @@ void UnrealMosquitto::MQTTClient::on_unsubscribe(int mid)
 void UnrealMosquitto::FRunnableTask::PushInputEvent(InputEvent ev)
 {
 	InputQueueLock->Lock();
-	if (InputQueue != NULL) {
+	if (InputQueue != NULL)
+	{
 		InputQueue->push(ev);
 	}
 	InputQueueLock->Unlock();
@@ -224,12 +241,12 @@ void UnrealMosquitto::FRunnableTask::PushInputEvent(InputEvent ev)
 void UnrealMosquitto::FRunnableTask::PushOutputEvent(OutputEvent ev)
 {
 	OutputQueueLock->Lock();
-	if (OutputQueue != NULL) {
+	if (OutputQueue != NULL)
+	{
 		OutputQueue->push(ev);
 	}
 	OutputQueueLock->Unlock();
 }
-
 
 AUnrealMosquitto::AUnrealMosquitto()
 {
@@ -240,7 +257,6 @@ AUnrealMosquitto::AUnrealMosquitto()
 void AUnrealMosquitto::BeginPlay()
 {
 	Super::BeginPlay();
-
 
 	_Task = new UnrealMosquitto::FRunnableTask();
 
@@ -261,14 +277,16 @@ void AUnrealMosquitto::BeginPlay()
 	// Start the main thread timer that will be used to check the message queue
 	FTimerHandle timer_handle;
 	GetWorldTimerManager().SetTimer(timer_handle, this,
-		&AUnrealMosquitto::MQTT_Worker, 0.05f, true);
+									&AUnrealMosquitto::MQTT_Worker, 0.05f, true);
 }
 
 // Safe cleaning
-void AUnrealMosquitto::BeginDestroy() {
+void AUnrealMosquitto::BeginDestroy()
+{
 	Super::BeginDestroy();
 
-	if (_Task != NULL) {
+	if (_Task != NULL)
+	{
 		_Task->StopRequest();
 		return;
 	}
@@ -276,23 +294,26 @@ void AUnrealMosquitto::BeginDestroy() {
 
 void AUnrealMosquitto::MQTT_Worker()
 {
-	if (_Task->InputQueueLock == NULL) {
+	if (_Task->InputQueueLock == NULL)
+	{
 		return;
 	}
 
 	_Task->InputQueueLock->Lock();
 	auto InputQueue = _Task->InputQueue;
 
-	while (InputQueue != NULL && !InputQueue->empty()) {
+	while (InputQueue != NULL && !InputQueue->empty())
+	{
 
 		UnrealMosquitto::InputEvent ev = InputQueue->front();
 		InputQueue->pop();
 
 		TArray<int> qos;
-		struct mosquitto_message* mosquitto_msg;
-		UMQTTMessage* msg;
+		struct mosquitto_message *mosquitto_msg;
+		UMQTTMessage *msg;
 
-		switch (ev.type) {
+		switch (ev.type)
+		{
 		case UnrealMosquitto::InputEventType::Connect:
 			OnConnect();
 			break;
@@ -325,7 +346,8 @@ void AUnrealMosquitto::MQTT_Worker()
 		case UnrealMosquitto::InputEventType::Subscribe:
 			// Convert the C-like array to an Unreal array
 			for (auto p = ev.subscription.granted_qos;
-				p < ev.subscription.granted_qos + ev.subscription.qos_count; ++p) {
+				 p < ev.subscription.granted_qos + ev.subscription.qos_count; ++p)
+			{
 				qos.Add(*p);
 			}
 			OnSubscribe(ev.subscription.mid, qos);
@@ -335,47 +357,46 @@ void AUnrealMosquitto::MQTT_Worker()
 			OnUnsubscribe(ev.mid);
 			break;
 		}
-
 	}
 	_Task->InputQueueLock->Unlock();
 }
 
-void AUnrealMosquitto::Subscribe(const FString& topic, int qos /*= 0*/) {
+void AUnrealMosquitto::Subscribe(const FString &topic, int qos /*= 0*/)
+{
 	// Copy the topic
-	char* sub = _strdup(TCHAR_TO_ANSI(*topic));
+	char *sub = _strdup(TCHAR_TO_ANSI(*topic));
 
 	UnrealMosquitto::OutputEvent ev;
 	ev.type = UnrealMosquitto::OutputEventType::Subscribe;
 	ev.subscription = {
-		qos, sub
-	};
+		qos, sub};
 
 	_Task->PushOutputEvent(ev);
 }
 
-void AUnrealMosquitto::Unsubscribe(const FString & topic) {
+void AUnrealMosquitto::Unsubscribe(const FString &topic)
+{
 	// Copy the topic
-	char* sub = _strdup(TCHAR_TO_ANSI(*topic));
+	char *sub = _strdup(TCHAR_TO_ANSI(*topic));
 
 	UnrealMosquitto::OutputEvent ev;
 	ev.type = UnrealMosquitto::OutputEventType::Unsubscribe;
 	ev.unsubscription = {
-		sub
-	};
+		sub};
 
 	_Task->PushOutputEvent(ev);
 }
 
-void AUnrealMosquitto::PublishString(const FString& message, const FString& topic, int qos /*= 0*/, bool retain /*= false*/) {
+void AUnrealMosquitto::PublishString(const FString &message, const FString &topic, int qos /*= 0*/, bool retain /*= false*/)
+{
 	// Copy the topic and the message
-	char* sub = _strdup(TCHAR_TO_ANSI(*topic));
-	char* msg = _strdup(TCHAR_TO_ANSI(*message));
+	char *sub = _strdup(TCHAR_TO_ANSI(*topic));
+	char *msg = _strdup(TCHAR_TO_ANSI(*message));
 
 	UnrealMosquitto::OutputEvent ev;
 	ev.type = UnrealMosquitto::OutputEventType::Publish;
 	ev.message = {
-		sub, (int)strlen(msg), msg, qos, retain
-	};
+		sub, (int)strlen(msg), msg, qos, retain};
 
 	_Task->PushOutputEvent(ev);
 }

@@ -1,0 +1,27 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "MQTT client",
+	"Description": "Provides a client for the MQTT protocol using the mosquitto reference implementation.",
+	"Category": "Network",
+	"CreatedBy": "yellowiscool",
+	"CreatedByURL": "https://github.com/SINTEF-9012/UnrealMosquitto",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": false,
+	"IsBetaVersion": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "UEmqtt",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"WhitelistPlatforms" :
+			[
+				"Win64"
+			]
+		}
+	]
+}
