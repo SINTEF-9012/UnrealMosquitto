@@ -37,4 +37,6 @@ void FUEmqttModule::ShutdownModule()
 
 #undef LOCTEXT_NAMESPACE
 
-IMPLEMENT_MODULE(FUEmqttModule, UEmqtt)
+IMPLEMENT_MODULE(FUEmqttModule, UEmqtt);
+
+DEFINE_LOG_CATEGORY(LogMQTT);

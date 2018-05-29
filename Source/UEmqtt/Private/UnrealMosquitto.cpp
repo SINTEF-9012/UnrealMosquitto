@@ -40,12 +40,12 @@ uint32 UnrealMosquitto::FRunnableTask::Run()
 	{
 		connection.username_pw_set(Username.c_str(), Password.c_str());
 	}
-	UE_LOG(LogTemp, Error, TEXT("Connecting to MQTT broker."));
+	UE_LOG(LogMQTT, Log, TEXT("Connecting to MQTT broker."));
 	returnCode = connection.connect(Host.c_str(), Port, 10);
 
 	if (returnCode != 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Mosquitto connect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
+		UE_LOG(LogMQTT, Error, TEXT("Mosquitto connect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 		_continue = false;
 	}
 
@@ -86,7 +86,7 @@ uint32 UnrealMosquitto::FRunnableTask::Run()
 
 		if (returnCode != 0)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Mosquitto output error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
+			UE_LOG(LogMQTT, Error, TEXT("Mosquitto output error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 			connection.reconnect();
 		}
 
@@ -99,16 +99,16 @@ uint32 UnrealMosquitto::FRunnableTask::Run()
 
 		if (returnCode != 0)
 		{
-			UE_LOG(LogTemp, Error, TEXT("Mosquitto loop error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
+			UE_LOG(LogMQTT, Error, TEXT("Mosquitto loop error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 			connection.reconnect();
 		}
 	}
 
-	UE_LOG(LogTemp, Error, TEXT("Disconnecting."));
+	UE_LOG(LogMQTT, Log, TEXT("Disconnecting."));
 	returnCode = connection.disconnect();
 	if (returnCode != 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Mosquitto disconnect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
+		UE_LOG(LogMQTT, Error, TEXT("Mosquitto disconnect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 	}
 
 	// Clean delete
@@ -136,11 +136,11 @@ void UnrealMosquitto::MQTTClient::on_connect(int rc)
 {
 	if (rc != 0)
 	{
-		UE_LOG(LogTemp, Error, TEXT("Not connected."));
+		UE_LOG(LogMQTT, Error, TEXT("Not connected."));
 		return;
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Connected."));
+	UE_LOG(LogMQTT, Log, TEXT("Connected."));
 
 	InputEvent ev;
 	ev.type = UnrealMosquitto::InputEventType::Connect;
@@ -204,7 +204,7 @@ void UnrealMosquitto::MQTTClient::on_message(const mosquitto_message *src)
 	ev.type = UnrealMosquitto::InputEventType::Message;
 	ev.message = dst;
 
-	UE_LOG(LogTemp, Warning, TEXT("Message received, Topic %s"), ANSI_TO_TCHAR(ev.message->topic));
+	UE_LOG(LogMQTT, Verbose, TEXT("Message received, Topic %s"), ANSI_TO_TCHAR(ev.message->topic));
 
 	Task->PushInputEvent(ev);
 }
@@ -277,7 +277,7 @@ void AUnrealMosquitto::BeginPlay()
 	// Start the main thread timer that will be used to check the message queue
 	FTimerHandle timer_handle;
 	GetWorldTimerManager().SetTimer(timer_handle, this,
-									&AUnrealMosquitto::MQTT_Worker, 0.05f, true);
+									&AUnrealMosquitto::MQTT_Worker, PollRate, true);
 }
 
 // Safe cleaning
@@ -332,7 +332,7 @@ void AUnrealMosquitto::MQTT_Worker()
 			// Convert the mosquitto struct to an Unreal object
 			msg = NewObject<UMQTTMessage>();
 			msg->FromMosquitto(mosquitto_msg);
-			//UE_LOG(LogTemp, Warning, TEXT("InputEvent, Topic %s"), ANSI_TO_TCHAR(mosquitto_msg->topic));
+			//UE_LOG(LogMQTT, Verbose, TEXT("InputEvent, Topic %s"), ANSI_TO_TCHAR(mosquitto_msg->topic));
 
 			// Manual free because mosquitto_message_free(&mosquitto_msg)
 			// is not compatible with Unreal's memory management

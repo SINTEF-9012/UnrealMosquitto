@@ -17,3 +17,5 @@ private:
 	void* mosquittoHandle;
 	void* mosquittoppHandle;
 };
+
+DECLARE_LOG_CATEGORY_EXTERN(LogMQTT, Log, All);

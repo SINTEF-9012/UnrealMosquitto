@@ -154,7 +154,7 @@ class FRunnableTask : public FRunnable
 	// The stop request asks the thread to stop. It is less aggressive than the Stop();
 	void StopRequest();
 };
-}
+} // namespace UnrealMosquitto
 
 #include "UnrealMosquitto.generated.h"
 
@@ -185,6 +185,9 @@ class UEMQTT_API AUnrealMosquitto : public AActor
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
 	FString ClientName = "UnrealMosquitto";
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
+	float PollRate = 0.05f;
 
 	// Events
 	UFUNCTION(BlueprintImplementableEvent, Category = "MQTT")
