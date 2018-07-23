@@ -12,14 +12,30 @@ void FUEmqttModule::StartupModule()
 	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 
 	// Get the base directory of this plugin
-	FString BaseDir = IPluginManager::Get().FindPlugin("UEmqtt")->GetBaseDir();
+	FString pluginDir = FPaths::Combine(IPluginManager::Get().FindPlugin("UEmqtt")->GetBaseDir(), TEXT("Source/ThirdParty/mosquitto"));
+	FString binDirMosquitto = FPaths::Combine(*pluginDir, TEXT("libmosquitto/bin"));
 
 	// Add on the relative location of the third party dll and load it
-	FString mosquittoPath = FPaths::Combine(*BaseDir, TEXT("Source/ThirdParty/mosquitto/libraries"));
+	FString openSslPath;
+	FString mosquittoPath;
+#if PLATFORM_WINDOWS
+	openSslPath = FPaths::Combine(*pluginDir, TEXT("libssl/bin/Win64"));
+	mosquittoPath = FPaths::Combine(*binDirMosquitto, TEXT("Win64"));
+#elif PLATFORM_MAC
+	mosquittoPath = FPaths::Combine(*binDirMosquitto, TEXT("Mac"));
+#endif // PLATFORM_WINDOWS
 
-	if (!mosquittoPath.IsEmpty()) {
+	if (!mosquittoPath.IsEmpty())
+	{
+#if PLATFORM_WINDOWS
+		cryptoHandle = FPlatformProcess::GetDllHandle(*(FPaths::Combine(*openSslPath, TEXT("libcrypto-1_1-x64.dll"))));
+		openSslHandle = FPlatformProcess::GetDllHandle(*(FPaths::Combine(*openSslPath, TEXT("libssl-1_1-x64.dll"))));
 		mosquittoHandle = FPlatformProcess::GetDllHandle(*(FPaths::Combine(*mosquittoPath, TEXT("mosquitto.dll"))));
 		mosquittoppHandle = FPlatformProcess::GetDllHandle(*(FPaths::Combine(*mosquittoPath, TEXT("mosquittopp.dll"))));
+#elif PLATFORM_MAC
+		mosquittoHandle = FPlatformProcess::GetDllHandle(*(FPaths::Combine(*mosquittoPath, TEXT("mosquitto.dylib"))));
+		mosquittoppHandle = FPlatformProcess::GetDllHandle(*(FPaths::Combine(*mosquittoPath, TEXT("mosquittopp.dylib"))));
+#endif // PLATFORM_WINDOWS
 	}
 }
 
@@ -29,10 +45,14 @@ void FUEmqttModule::ShutdownModule()
 	// we call this function before unloading the module.
 
 	// Free the dll handle
-	FPlatformProcess::FreeDllHandle(mosquittoHandle);
+	FPlatformProcess::FreeDllHandle(cryptoHandle);
+	FPlatformProcess::FreeDllHandle(openSslHandle);
 	FPlatformProcess::FreeDllHandle(mosquittoppHandle);
+	FPlatformProcess::FreeDllHandle(mosquittoHandle);
 	mosquittoHandle = nullptr;
 	mosquittoppHandle = nullptr;
+	openSslHandle = nullptr;
+	cryptoHandle = nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

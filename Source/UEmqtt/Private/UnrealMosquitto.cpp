@@ -45,13 +45,22 @@ uint32 UnrealMosquitto::FRunnableTask::Run()
 
 	if (returnCode != 0)
 	{
-		UE_LOG(LogMQTT, Error, TEXT("Mosquitto connect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
-		_continue = false;
+		UE_LOG(LogMQTT, Error, TEXT("Could not connect to broker: %s:%i, %s"), ANSI_TO_TCHAR(Host.c_str()), Port, ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 	}
 
 	// While StopRequest() hasn't been called
 	while (_continue)
 	{
+		while (returnCode != 0 && _continue && ReconnectDelay >= 0.0f)
+		{
+			FPlatformProcess::Sleep(ReconnectDelay);
+			UE_LOG(LogMQTT, Log, TEXT("Reconnecting to broker: %s:%i"), ANSI_TO_TCHAR(Host.c_str()), Port);
+			returnCode = connection.reconnect();
+			if (returnCode != 0)
+			{
+				UE_LOG(LogMQTT, Error, TEXT("Could not connect to broker: %s:%i, %s"), ANSI_TO_TCHAR(Host.c_str()), Port, ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
+			}
+		}
 
 		// Lock critical region.
 		OutputQueueLock->Lock();
@@ -86,21 +95,15 @@ uint32 UnrealMosquitto::FRunnableTask::Run()
 
 		if (returnCode != 0)
 		{
-			UE_LOG(LogMQTT, Error, TEXT("Mosquitto output error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
-			connection.reconnect();
+			UE_LOG(LogMQTT, Error, TEXT("Output error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 		}
 
 		// Run the connection loop (receive, connect, etc...)
 		returnCode = connection.loop();
-		/*int i = 0;
-		do {
-		returnCode = connection.loop();
-		} while (_continue && returnCode == MOSQ_ERR_SUCCESS && ++i < 10);*/
 
 		if (returnCode != 0)
 		{
-			UE_LOG(LogMQTT, Error, TEXT("Mosquitto loop error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
-			connection.reconnect();
+			UE_LOG(LogMQTT, Error, TEXT("Loop error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 		}
 	}
 
@@ -108,7 +111,7 @@ uint32 UnrealMosquitto::FRunnableTask::Run()
 	returnCode = connection.disconnect();
 	if (returnCode != 0)
 	{
-		UE_LOG(LogMQTT, Error, TEXT("Mosquitto disconnect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
+		UE_LOG(LogMQTT, Error, TEXT("Disconnect error: %s"), ANSI_TO_TCHAR(mosquitto_strerror(returnCode)));
 	}
 
 	// Clean delete
@@ -140,7 +143,7 @@ void UnrealMosquitto::MQTTClient::on_connect(int rc)
 		return;
 	}
 
-	UE_LOG(LogMQTT, Log, TEXT("Connected."));
+	UE_LOG(LogMQTT, Log, TEXT("Connection established."));
 
 	InputEvent ev;
 	ev.type = UnrealMosquitto::InputEventType::Connect;
@@ -269,6 +272,7 @@ void AUnrealMosquitto::BeginPlay()
 	_Task->Host = std::string(TCHAR_TO_ANSI(*Host));
 	_Task->ClientName = std::string(TCHAR_TO_ANSI(*ClientName));
 	_Task->Port = Port;
+	_Task->ReconnectDelay = ReconnectDelay;
 	_Task->Username = std::string(TCHAR_TO_ANSI(*Username));
 	_Task->Password = std::string(TCHAR_TO_ANSI(*Password));
 

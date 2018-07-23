@@ -139,6 +139,7 @@ class FRunnableTask : public FRunnable
   public:
 	std::string Host;
 	int32 Port;
+	float ReconnectDelay;
 	std::string ClientName;
 	std::string Username;
 	std::string Password;
@@ -171,9 +172,11 @@ class UEMQTT_API AUnrealMosquitto : public AActor
 	virtual void BeginDestroy() override;
 
 	// Properties
+	/** MQTT broker host name */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
 	FString Host = "127.0.0.1";
 
+	/** MQTT broker port */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
 	int32 Port = 1883;
 
@@ -186,8 +189,13 @@ class UEMQTT_API AUnrealMosquitto : public AActor
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
 	FString ClientName = "UnrealMosquitto";
 
+	/** Polling rate for incoming messages in seconds */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
 	float PollRate = 0.05f;
+
+	/** Reconnect delay in seconds. No reconnection if this is < 0 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "MQTT")
+	float ReconnectDelay = 10.0f;
 
 	// Events
 	UFUNCTION(BlueprintImplementableEvent, Category = "MQTT")

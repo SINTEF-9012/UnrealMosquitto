@@ -3,32 +3,26 @@
 using System.IO;
 using UnrealBuildTool;
 
-public class UEmqtt : ModuleRules
-{
-	public UEmqtt(ReadOnlyTargetRules Target) : base(Target)
-	{
+public class UEmqtt : ModuleRules {
+	public UEmqtt(ReadOnlyTargetRules Target) : base(Target) {
 		PCHUsage = ModuleRules.PCHUsageMode.UseExplicitOrSharedPCHs;
 		
 		PublicIncludePaths.AddRange(
 			new string[] {
 				"UEmqtt/Public"
 				// ... add public include paths required here ...
-			}
-			);
+			});
 				
 		
 		PrivateIncludePaths.AddRange(
 			new string[] {
-				"UEmqtt/Private",
-				"ThirdParty/mosquitto/includes"
+				"UEmqtt/Private"
 				// ... add other private include paths required here ...
-			}
-			);
+			});
 			
 		
 		PublicDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
 				"Core",
 				"CoreUObject",
 				"Engine",
@@ -36,29 +30,19 @@ public class UEmqtt : ModuleRules
 				"InputCore",
 				"BlueprintGraph"
 				// ... add other public dependencies that you statically link with here ...
-			}
-			);
+			});
 			
 		
 		PrivateDependencyModuleNames.AddRange(
-			new string[]
-			{
+			new string[] {
+				"mosquitto"
 				// ... add private dependencies that you statically link with here ...	
-			}
-			);
+			});
 
 
         DynamicallyLoadedModuleNames.AddRange(
-            new string[]
-            {
+            new string[]{
 				// ... add any modules that your module loads dynamically here ...
-			}
-            );
-
-		PublicLibraryPaths.Add(Path.GetFullPath(Path.Combine(ModuleDirectory, "..", "ThirdParty", "mosquitto", "libraries")));
-		PublicAdditionalLibraries.Add("mosquitto.lib");
-		PublicAdditionalLibraries.Add("mosquittopp.lib");
-		PublicDelayLoadDLLs.Add("mosquitto.dll");
-		PublicDelayLoadDLLs.Add("mosquittopp.dll");
+			});
 	}
 }

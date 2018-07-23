@@ -20,3 +20,12 @@ To use the MQTT client, the simplest method is to create a blueprint child class
  2. Right click and select `Create Blueprint class based on UnrealMosquitto`.
  
  This new child class has access to the events in its event graph. You can also configure the client in the MQTT section in the details panel of the root element. The router can dispatch executions flows based on MQTT topics.
+
+# Binaries
+
+This plugin contains the following precompiled binaries for Windows x64:
+
+ - [libmosquitto 1.5](https://mosquitto.org/)
+ - [libssl 1.1.1-pre8](https://www.openssl.org/)
+
+OpenSSL is required for using SSL/TLS for MQTT. All binaries were compiled using Visual Studio 2015 and NASM. The instructions on how to build these can be found on the above websites.

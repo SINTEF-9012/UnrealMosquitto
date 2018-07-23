@@ -7,15 +7,16 @@
 class FUEmqttModule : public IModuleInterface
 {
 public:
-
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
 
 private:
 	/** Handle to the dlls we will load */
-	void* mosquittoHandle;
-	void* mosquittoppHandle;
+	void *cryptoHandle;
+	void *openSslHandle;
+	void *mosquittoHandle;
+	void *mosquittoppHandle;
 };
 
 DECLARE_LOG_CATEGORY_EXTERN(LogMQTT, Log, All);
