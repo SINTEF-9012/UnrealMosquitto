@@ -10,7 +10,7 @@
  * 
  */
 UCLASS(BlueprintType, Blueprintable)
-class PROJECTNAME_API UUnrealMosquittoRouter : public UK2Node_Switch
+class UNREALMOSQUITTOEDITOR_API UUnrealMosquittoRouter : public UK2Node_Switch
 {
 	GENERATED_BODY()
 	

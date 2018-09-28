@@ -4,6 +4,7 @@
 #include "UnrealMosquitto.h"
 
 #include "RunnableThread.h"
+#include "TimerManager.h"
 
 #include <mosquitto.h>
 
