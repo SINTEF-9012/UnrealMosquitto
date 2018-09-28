@@ -34,7 +34,7 @@ class PROJECTNAME_API UUnrealMosquittoRouter : public UK2Node_Switch
 	/*BLUEPRINTGRAPH_API*/ virtual void AddPinToSwitchNode() override;
 	virtual FEdGraphPinType GetPinType() const override;
 
-	virtual FString GetPinNameGivenIndex(int32 Index) override;
+	virtual FName GetPinNameGivenIndex(int32 Index) const override;
 	virtual void CreateFunctionPin();
 
 protected:
