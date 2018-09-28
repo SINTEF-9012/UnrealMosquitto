@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "HAL/Runnable.h"
 
 #include <mosquittopp.h>
 #include <queue>

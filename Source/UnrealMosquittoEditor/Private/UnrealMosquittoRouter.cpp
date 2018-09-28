@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "ProjectName.h"
+#include "UnrealMosquittoEditor.h"
 #include "UnrealMosquittoRouter.h"
 #include "UnrealMosquittoRoutingLibrary.h"
 
@@ -28,9 +28,9 @@ FunctionName = TEXT("RoutingNotMatched");
 Super::GetContextMenuAction(Context);
 }*/
 /**/
-FString UUnrealMosquittoRouter::GetPinNameGivenIndex(int32 Index)
+FName UUnrealMosquittoRouter::GetPinNameGivenIndex(int32 Index)const
 {
-	return Routes[Index];
+	return FName(*Routes[Index]);
 }
 
 void UUnrealMosquittoRouter::CreateFunctionPin()
@@ -159,5 +159,5 @@ void UUnrealMosquittoRouter::RemovePin(UEdGraphPin* TargetPin)
 	checkSlow(TargetPin);
 
 	// Clean-up pin name array
-	Routes.Remove(TargetPin->PinName);
+	Routes.Remove(TargetPin->PinName.ToString());
 }
