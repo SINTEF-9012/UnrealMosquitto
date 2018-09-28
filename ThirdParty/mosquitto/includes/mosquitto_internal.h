@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2010-2014 Roger Light <roger@atchoo.org>
+Copyright (c) 2010-2018 Roger Light <roger@atchoo.org>
 
 All rights reserved. This program and the accompanying materials
 are made available under the terms of the Eclipse Public License v1.0
@@ -12,12 +12,13 @@ and the Eclipse Distribution License is available at
  
 Contributors:
    Roger Light - initial implementation and documentation.
+   Tatsuzo Osawa - Add epoll.
 */
 
-#ifndef _MOSQUITTO_INTERNAL_H_
-#define _MOSQUITTO_INTERNAL_H_
+#ifndef MOSQUITTO_INTERNAL_H
+#define MOSQUITTO_INTERNAL_H
 
-#include "config.h""
+#include "config.h"
 
 #ifdef WIN32
 #  include <winsock2.h>
@@ -33,7 +34,7 @@ Contributors:
 #if defined(WITH_THREADING) && !defined(WITH_BROKER)
 #  include <pthread.h>
 #else
-#  include "dummypthread.h"
+#  include <dummypthread.h>
 #endif
 
 #ifdef WITH_SRV
@@ -56,6 +57,9 @@ Contributors:
 #include "mosquitto.h"
 #include "time_mosq.h"
 #ifdef WITH_BROKER
+#  ifdef __linux__
+#    include <netdb.h>
+#  endif
 #  include "uthash.h"
 struct mosquitto_client_msg;
 #endif
@@ -103,25 +107,33 @@ enum mosquitto_client_state {
 	mosq_cs_socks5_userpass_reply = 13,
 	mosq_cs_socks5_send_userpass = 14,
 	mosq_cs_expiring = 15,
+	mosq_cs_connecting = 16,
+	mosq_cs_duplicate = 17, /* client that has been taken over by another with the same id */
 };
 
-enum _mosquitto_protocol {
+enum mosquitto__protocol {
 	mosq_p_invalid = 0,
 	mosq_p_mqtt31 = 1,
 	mosq_p_mqtt311 = 2,
 	mosq_p_mqtts = 3
 };
 
-enum _mosquitto_transport {
+enum mosquitto__threaded_state {
+	mosq_ts_none,		/* No threads in use */
+	mosq_ts_self,		/* Threads started by libmosquitto */
+	mosq_ts_external	/* Threads started by external code */
+};
+
+enum mosquitto__transport {
 	mosq_t_invalid = 0,
 	mosq_t_tcp = 1,
 	mosq_t_ws = 2,
 	mosq_t_sctp = 3
 };
 
-struct _mosquitto_packet{
+struct mosquitto__packet{
 	uint8_t *payload;
-	struct _mosquitto_packet *next;
+	struct mosquitto__packet *next;
 	uint32_t remaining_mult;
 	uint32_t remaining_length;
 	uint32_t packet_length;
@@ -146,7 +158,10 @@ struct mosquitto {
 #ifndef WITH_BROKER
 	mosq_sock_t sockpairR, sockpairW;
 #endif
-	enum _mosquitto_protocol protocol;
+#if defined(__GLIBC__) && defined(WITH_ADNS)
+	struct gaicb *adns; /* For getaddrinfo_a */
+#endif
+	enum mosquitto__protocol protocol;
 	char *address;
 	char *id;
 	char *username;
@@ -155,11 +170,11 @@ struct mosquitto {
 	uint16_t last_mid;
 	enum mosquitto_client_state state;
 	time_t last_msg_in;
-	time_t last_msg_out;
+	time_t next_msg_out;
 	time_t ping_t;
-	struct _mosquitto_packet in_packet;
-	struct _mosquitto_packet *current_out_packet;
-	struct _mosquitto_packet *out_packet;
+	struct mosquitto__packet in_packet;
+	struct mosquitto__packet *current_out_packet;
+	struct mosquitto__packet *out_packet;
 	struct mosquitto_message *will;
 #ifdef WITH_TLS
 	SSL *ssl;
@@ -175,6 +190,7 @@ struct mosquitto {
 	char *tls_psk_identity;
 	int tls_cert_reqs;
 	bool tls_insecure;
+	bool ssl_ctx_defaults;
 #endif
 	bool want_write;
 	bool want_connect;
@@ -192,18 +208,24 @@ struct mosquitto {
 #endif
 	bool clean_session;
 #ifdef WITH_BROKER
+	char *old_id; /* for when a duplicate client connects, but we still want to
+					 know what the id was */
 	bool is_dropping;
 	bool is_bridge;
-	struct _mqtt3_bridge *bridge;
-	struct mosquitto_client_msg *msgs;
-	struct mosquitto_client_msg *last_msg;
+	struct mosquitto__bridge *bridge;
+	struct mosquitto_client_msg *inflight_msgs;
+	struct mosquitto_client_msg *last_inflight_msg;
+	struct mosquitto_client_msg *queued_msgs;
+	struct mosquitto_client_msg *last_queued_msg;
+	unsigned long msg_bytes;
+	unsigned long msg_bytes12;
 	int msg_count;
 	int msg_count12;
-	struct _mosquitto_acl_user *acl_list;
-	struct _mqtt3_listener *listener;
+	struct mosquitto__acl_user *acl_list;
+	struct mosquitto__listener *listener;
 	time_t disconnect_t;
-	struct _mosquitto_packet *out_packet_last;
-	struct _mosquitto_subhier **subs;
+	struct mosquitto__packet *out_packet_last;
+	struct mosquitto__subhier **subs;
 	int sub_count;
 	int pollfd_index;
 #  ifdef WITH_WEBSOCKETS
@@ -214,6 +236,7 @@ struct mosquitto {
 	struct libwebsocket *wsi;
 #    endif
 #  endif
+	bool ws_want_write;
 #else
 #  ifdef WITH_SOCKS
 	char *socks5_host;
@@ -223,13 +246,12 @@ struct mosquitto {
 #  endif
 	void *userdata;
 	bool in_callback;
-	unsigned int message_retry;
-	time_t last_retry_check;
 	struct mosquitto_message_all *in_messages;
 	struct mosquitto_message_all *in_messages_last;
 	struct mosquitto_message_all *out_messages;
 	struct mosquitto_message_all *out_messages_last;
 	void (*on_connect)(struct mosquitto *, void *userdata, int rc);
+	void (*on_connect_with_flags)(struct mosquitto *, void *userdata, int rc, int flags);
 	void (*on_disconnect)(struct mosquitto *, void *userdata, int rc);
 	void (*on_publish)(struct mosquitto *, void *userdata, int mid);
 	void (*on_message)(struct mosquitto *, void *userdata, const struct mosquitto_message *message);
@@ -245,8 +267,8 @@ struct mosquitto {
 	unsigned int reconnect_delay;
 	unsigned int reconnect_delay_max;
 	bool reconnect_exponential_backoff;
-	bool threaded;
-	struct _mosquitto_packet *out_packet_last;
+	char threaded;
+	struct mosquitto__packet *out_packet_last;
 	int inflight_messages;
 	int max_inflight_messages;
 #  ifdef WITH_SRV
@@ -259,8 +281,12 @@ struct mosquitto {
 	UT_hash_handle hh_sock;
 	struct mosquitto *for_free_next;
 #endif
+#ifdef WITH_EPOLL
+	uint32_t events;
+#endif
 };
 
 #define STREMPTY(str) (str[0] == '\0')
 
 #endif
+
