@@ -8,6 +8,13 @@ public class ProjectName : ModuleRules
 
         /** existing constructor code */
 
+        // add BlueprintGraph module to PublicDependencyModuleNames
+
+        PublicDependencyModuleNames.AddRange(new string[] { "Core",
+			"CoreUObject", "Engine", "InputCore",
+			"BlueprintGraph"
+		});
+
         // /!\ add this to the end /!\
         LoadThirdPartyDLL("mosquitto", Target);
         LoadThirdPartyDLL("mosquittopp", Target);
